@@ -85,7 +85,7 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     rms = (rms / x.size() as f32).sqrt();
 
     let rms_inv = 1.0 / (rms + epsilon);
-    let mut y_data = y.data_mut();
+    let mut y_data = unsafe { y.data_mut() };
     let x_data = x.data();
     let w_data = w.data();
 
