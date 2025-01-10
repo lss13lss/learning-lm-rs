@@ -77,14 +77,21 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
 
     assert!(epsilon > 0.0);
 
-    let sum_of_squares: f32 = x.data().iter().map(|&v| v * v).sum();
-    let rms = (sum_of_squares / x.size() as f32 + epsilon).sqrt();
+    let mut rms = 0.0;
+    for i in 0..x.size() {
+        rms += x.data()[i].powi(2);
+    }
+    rms = (rms / x.size() as f32).sqrt();
 
-    let _x = x.data();
-    let mut _y = unsafe { y.data_mut() };
+    let rms_inv = 1.0 / (rms + epsilon);
 
-    for (i, val) in _x.iter().enumerate() {
-        _y[i] = val / rms * w.data()[i]; 
+    let mut y_data = unsafe { y.data_mut() };
+    let x_data = x.data();
+    let w_data = w.data();
+
+    for i in 0..x.size() {
+        y_data[i] = x_data[i] * rms_inv;
+        y_data[i] *= w_data[i];
     }
 }
 
@@ -113,14 +120,13 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    let a_shape = a.shape();
-    let b_shape = b.shape();
-    let c_shape = c.shape();
+    assert!(c.shape().len() == 2);
+    assert!(a.shape().len() == 2);
+    assert!(b.shape().len() == 2);
+    assert!(c.shape()[0] == a.shape()[0]);
+    assert!(c.shape()[1] == b.shape()[0]);
+    assert!(a.shape()[1] == b.shape()[1]);
 
-    // 检查输入张量的形状是否兼容
-    assert!(a_shape.len() == 2 && b_shape.len() == 2 && c_shape.len() == 2);
-    assert!(a_shape[1] == b_shape[0]);
-    assert!(c_shape[0] == a_shape[0] && c_shape[1] == b_shape[1]);
 
     let a_data = a.data();
     let b_data = b.data();
