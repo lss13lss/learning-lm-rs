@@ -71,10 +71,9 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 }
 
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    assert!(x.size() == w.size() && x.size() == y.size());
-    for i in 0..x.shape().len() {
-        assert!(x.shape()[i] == w.shape()[i]);
-    }
+    assert!(y.size() == x.size());
+    assert!(y.shape() == x.shape());
+    assert!(w.size() == x.shape()[1]);
 
     assert!(epsilon > 0.0);
 
