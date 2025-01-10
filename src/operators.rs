@@ -85,12 +85,13 @@ pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: 
     rms = (rms / x.size() as f32).sqrt();
 
     let rms_inv = 1.0 / (rms + epsilon);
-    for i in 0..x.size() {
-        y.data_mut()[i] = x.data()[i] * rms_inv;
-    }
+    let mut y_data = y.data_mut();
+    let x_data = x.data();
+    let w_data = w.data();
 
     for i in 0..x.size() {
-        y.data_mut()[i] *= w.data()[i];
+        y_data[i] = x_data[i] * rms_inv;
+        y_data[i] *= w_data[i];
     }
 }
 
