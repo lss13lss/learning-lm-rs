@@ -125,9 +125,9 @@ pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor
     let b_data = b.data();
     let mut c_data = unsafe { c.data_mut() };
 
-    let m = a.shape[0];
-    let n = b.shape[1];
-    let k = a.shape[1];
+    let m = a.shape()[0];
+    let n = b.shape()[1];
+    let k = a.shape()[1];
 
     for i in 0..m {
         for j in 0..n {
