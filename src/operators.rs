@@ -137,11 +137,10 @@ pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor
     c_data.iter_mut().for_each(|x| *x *= beta);
 
     for i in 0..m {
+        let a_slice = a.slice(i * k, &vec![k]);
         for j in 0..n {
-            let mut sum = 0.0;
-            for l in 0..k {
-                sum += a.data()[i * k + l] * b.data()[l * n + j];  
-            }
+            let b_slice = b.slice(j * k, &vec![k]);
+            let sum = dot(&a_slice, &b_slice);
             c_data[i * n + j] += alpha * sum;
         }
     }
