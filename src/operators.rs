@@ -120,21 +120,14 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    assert!(c.shape().len() == 2);
-    assert!(a.shape().len() == 2);
-    assert!(b.shape().len() == 2);
-    assert!(c.shape()[0] == a.shape()[0]);
-    assert!(c.shape()[1] == b.shape()[0]);
-    assert!(a.shape()[1] == b.shape()[1]);
-
 
     let a_data = a.data();
     let b_data = b.data();
     let mut c_data = unsafe { c.data_mut() };
 
-    let m = a_shape[0];
-    let n = b_shape[1];
-    let k = a_shape[1];
+    let m = a.shape[0];
+    let n = b.shape[1];
+    let k = a.shape[1];
 
     for i in 0..m {
         for j in 0..n {
