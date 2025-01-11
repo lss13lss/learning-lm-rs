@@ -121,21 +121,23 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
 
-    let a_data = a.data();
-    let b_data = b.data();
-    let mut c_data = unsafe { c.data_mut() };
-
     let m = a.shape()[0];
-    let n = b.shape()[1];
     let k = a.shape()[1];
+    let n = b.shape()[0];
+
+    assert_eq!(c.size(), m * n);
+    assert_eq!(b.shape()[1], k);
+
+    
+    let c_data = unsafe { c.data_mut() };
+    c_data.iter_mut().for_each(|x| *x *= beta);
 
     for i in 0..m {
+        let a_slice = a.slice(i * k, &vec![k]);
         for j in 0..n {
-            let mut sum = 0.0;
-            for l in 0..k {
-                sum += a_data[i * k + l] * b_data[l * n + j];
-            }
-            c_data[i * n + j] = beta * c_data[i * n + j] + alpha * sum;
+            let b_slice = b.slice(j * k, &vec![k]);
+            let sum = dot(&a_slice, &b_slice);
+            c_data[i * n + j] += alpha * sum;
         }
     }
 }
