@@ -71,27 +71,31 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 }
 
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    assert!(y.size() == x.size());
-    assert!(y.shape() == x.shape());
-    assert!(w.size() == x.shape()[1]);
+    assert_eq!(y.size(), x.size());
+    let batch = x.shape().last().unwrap();
+    let dim = x.size() / batch;
+    assert_eq!(w.size(), *batch);
 
-    assert!(epsilon > 0.0);
-
-    let mut rms = 0.0;
-    for i in 0..x.size() {
-        rms += x.data()[i].powi(2);
-    }
-    rms = (rms / x.size() as f32).sqrt();
-
-    let rms_inv = 1.0 / (rms + epsilon);
-
-    let mut y_data = unsafe { y.data_mut() };
-    let x_data = x.data();
     let w_data = w.data();
+    let batch_f32 = *batch as f32;
 
-    for i in 0..x.size() {
-        y_data[i] = x_data[i] * rms_inv;
-        y_data[i] *= w_data[i];
+    let x_data = x.data();
+    let mut y_data = unsafe { y.data_mut() };
+
+    for i in 0..dim {
+
+        let start_idx = i * batch;
+        let end_idx = start_idx + batch;
+
+        let sum_squares = x_data[start_idx..end_idx]
+            .iter()
+            .map(|&x_ij| x_ij * x_ij)
+            .sum::<f32>();
+        let rms_i = (sum_squares / batch_f32 + epsilon).sqrt();
+
+        for j in 0..*batch {
+            y_data[start_idx + j] = x_data[start_idx + j] * w_data[j] / rms_i;
+        }
     }
 }
 
@@ -133,10 +137,11 @@ pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor
     c_data.iter_mut().for_each(|x| *x *= beta);
 
     for i in 0..m {
-        let a_slice = a.slice(i * k, &vec![k]);
         for j in 0..n {
-            let b_slice = b.slice(j * k, &vec![k]);
-            let sum = dot(&a_slice, &b_slice);
+            let mut sum = 0.0;
+            for l in 0..k {
+                sum += a.data()[i * k + l] * b.data()[l * n + j];  
+            }
             c_data[i * n + j] += alpha * sum;
         }
     }
