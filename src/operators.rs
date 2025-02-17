@@ -71,7 +71,32 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
 }
 
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+    assert_eq!(y.size(), x.size());
+    let batch = x.shape().last().unwrap();
+    let dim = x.size() / batch;
+    assert_eq!(w.size(), *batch);
+
+    let w_data = w.data();
+    let batch_f32 = *batch as f32;
+
+    let x_data = x.data();
+    let mut y_data = unsafe { y.data_mut() };
+
+    for i in 0..dim {
+
+        let start_idx = i * batch;
+        let end_idx = start_idx + batch;
+
+        let sum_squares = x_data[start_idx..end_idx]
+            .iter()
+            .map(|&x_ij| x_ij * x_ij)
+            .sum::<f32>();
+        let rms_i = (sum_squares / batch_f32 + epsilon).sqrt();
+
+        for j in 0..*batch {
+            y_data[start_idx + j] = x_data[start_idx + j] * w_data[j] / rms_i;
+        }
+    }
 }
 
 // y = silu(x) * y
@@ -83,13 +108,41 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
     // let _y = unsafe { y.data_mut() };
     // let _x = x.data();
 
-    todo!("实现 silu，这里给了一些前期准备工作的提示，你可以参考")
+    let len = y.size();
+    assert!(len == x.size());
+
+    let mut y_data = unsafe { y.data_mut() };
+    let x_data = x.data();
+
+    for i in 0..len {
+        let x_i = x_data[i];
+        let silu_i = x_i / (1.0 + (-x_i).exp());
+        y_data[i] *= silu_i;
+    }
 }
 
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+    let m = a.shape()[0];
+    let k = a.shape()[1];
+    let n = b.shape()[0];
+
+    assert_eq!(c.size(), m * n);
+    assert_eq!(b.shape()[1], k);
+
+    
+    let c_data = unsafe { c.data_mut() };
+    c_data.iter_mut().for_each(|x| *x *= beta);
+
+    for i in 0..m {
+        let a_slice = a.slice(i * k, &vec![k]);
+        for j in 0..n {
+            let b_slice = b.slice(j * k, &vec![k]);
+            let sum = dot(&a_slice, &b_slice);
+            c_data[i * n + j] += alpha * sum;
+        }
+    }
 }
 
 // Dot product of two tensors (treated as vectors)
