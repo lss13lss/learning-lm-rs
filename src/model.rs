@@ -172,12 +172,11 @@ fn mlp(
     OP::matmul_transb(up, 0., hidden_states, w_up, 1.);
     OP::swiglu(up,gate);
     OP::matmul_transb(hidden_states, 0., up, w_down, 1.);
-    unsafe {
-        residual
-            .data_mut()
-            .iter_mut()
-            .zip(hidden_states.data())
-            .for_each(|(r, &h)| *r += h);
+    let res_size = residual.size();
+    for i in 0..res_size {
+        unsafe{
+            residual.data_mut()[i] += hidden_states.data()[i];
+        }
     }
 }
 
