@@ -167,7 +167,18 @@ fn mlp(
     rms_w: &Tensor<f32>,
     eps: f32,
 ) {
-    todo!("Implement mlp");
+    OP::rms_norm(hidden_states, residual, rms_w, eps);
+    OP::matmul_transb(gate, 0., hidden_states, w_gate, 1.);
+    OP::matmul_transb(up, 0., hidden_states, w_up, 1.);
+    OP::swiglu(up,gate);
+    OP::matmul_transb(hidden_states, 0., up, w_down, 1.);
+    unsafe {
+        residual
+            .data_mut()
+            .iter_mut()
+            .zip(hidden_states.data())
+            .for_each(|(r, &h)| *r += h);
+    }
 }
 
 #[test]
